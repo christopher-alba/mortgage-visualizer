@@ -1,0 +1,43 @@
+<div [formGroup]="formGroup" class="p-3 bg-neutral-600 mb-3 rounded-md">
+  <button
+    mat-flat-button
+    class="!text-white !bg-neutral-800 mb-5"
+    (click)="onDelete()"
+  >
+    Delete
+  </button>
+  <div>
+    <mat-form-field class="w-full mr-1">
+      <mat-label>{{ amountType }} Name</mat-label>
+      <input matInput type="text" formControlName="name" />
+    </mat-form-field>
+    <div class="flex">
+      <mat-form-field class="w-[60%] mr-1">
+        <mat-label>{{ amountType }}</mat-label>
+        <input matInput type="number" formControlName="amount" />
+      </mat-form-field>
+      <mat-form-field class="w-[40%]">
+        <mat-label>Frequency</mat-label>
+        <mat-select mat type="number" formControlName="frequency">
+          <mat-option value="weekly">weekly</mat-option>
+          <mat-option value="fortnightly">fortnightly</mat-option>
+          <mat-option value="monthly">monthly</mat-option>
+          <mat-option value="yearly">yearly</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div class="flex justify-between items-center">
+      <div class="flex items-center">
+        <h4 class="mr-3">Apply Tax</h4>
+        <mat-slide-toggle formControlName="applyTax"></mat-slide-toggle>
+      </div>
+      <mat-form-field
+        *ngIf="formGroup.controls['applyTax'].value"
+        class="w-[40%]"
+      >
+        <mat-label>Tax Rate (%)</mat-label>
+        <input matInput type="number" formControlName="taxRate" />
+      </mat-form-field>
+    </div>
+  </div>
+</div>

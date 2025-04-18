@@ -1,0 +1,57 @@
+<div class="min-h-screen w-full flex">
+  <div
+    class="w-[500px] p-10 h-screen overflow-auto sticky top-0 bg-neutral-900 text-white"
+  >
+    <h1 class="text-2xl mb-0 font-semibold">Mortgage Visualizer</h1>
+    <h2 class="mb-3 text-lg">Savings Calculator</h2>
+    <hr class="w-full my-3" />
+    <form [formGroup]="form">
+      <mat-form-field class="w-full">
+        <mat-label>Savings Goal</mat-label>
+        <input matInput type="number" formControlName="savingsGoal" />
+      </mat-form-field>
+      <div
+        class="flex space-x-5 items-center justify-between"
+        (click)="addIncome()"
+      >
+        <h3>Incomes</h3>
+        <button mat-flat-button extended class="!bg-white !text-blue-500">
+          <mat-icon fontIcon="add"></mat-icon>Add
+        </button>
+      </div>
+      <hr class="my-3" />
+      <ng-container formArrayName="incomes">
+        <div
+          *ngFor="let incomeCtrl of incomeFormGroups; let i = index"
+          [formGroupName]="i"
+        >
+          <app-amount-frequency-tax-input
+            [formGroup]="incomeCtrl"
+            amountType="income"
+            (deleteAmountInput)="removeIncome($event)"
+          ></app-amount-frequency-tax-input>
+        </div>
+      </ng-container>
+      <button
+        mat-flat-button
+        class="w-full"
+        (click)="buildChart()"
+      >
+        Generate Report
+      </button>
+    </form>
+  </div>
+  <div class="flex-grow flex-1 p-10">
+    <h1>
+      Please fill in the form on the left to get your visualizations and
+      estimations.
+    </h1>
+    <canvas
+      baseChart
+      [data]="lineChartData"
+      [options]="lineChartOptions"
+      type="line"
+    >
+    </canvas>
+  </div>
+</div>
