@@ -20,23 +20,45 @@
         </button>
       </div>
       <hr class="my-3" />
-      <ng-container formArrayName="incomes">
-        <div
-          *ngFor="let incomeCtrl of incomeFormGroups; let i = index"
-          [formGroupName]="i"
-        >
-          <app-amount-frequency-tax-input
-            [formGroup]="incomeCtrl"
-            amountType="income"
-            (deleteAmountInput)="removeIncome($event)"
-          ></app-amount-frequency-tax-input>
-        </div>
-      </ng-container>
-      <button
-        mat-flat-button
-        class="w-full"
-        (click)="buildChart()"
+      <div class="mb-10">
+        <ng-container formArrayName="incomes">
+          <div
+            *ngFor="let incomeCtrl of incomeFormGroups; let i = index"
+            [formGroupName]="i"
+          >
+            <app-amount-frequency-tax-input
+              [formGroup]="incomeCtrl"
+              amountType="income"
+              (deleteAmountInput)="removeIncome($event)"
+            ></app-amount-frequency-tax-input>
+          </div>
+        </ng-container>
+      </div>
+      <div
+        class="flex space-x-5 items-center justify-between"
+        (click)="addExpense()"
       >
+        <h3>Expenses</h3>
+        <button mat-flat-button extended class="!bg-white !text-blue-500">
+          <mat-icon fontIcon="add"></mat-icon>Add
+        </button>
+      </div>
+      <hr class="my-3" />
+      <div class="mb-10">
+        <ng-container formArrayName="expenses">
+          <div
+            *ngFor="let expensesControl of expensesFormGroups; let i = index"
+            [formGroupName]="i"
+          >
+            <app-amount-frequency-tax-input
+              [formGroup]="expensesControl"
+              amountType="expense"
+              (deleteAmountInput)="removeExpense($event)"
+            ></app-amount-frequency-tax-input>
+          </div>
+        </ng-container>
+      </div>
+      <button mat-flat-button class="w-full" (click)="buildChart()">
         Generate Report
       </button>
     </form>

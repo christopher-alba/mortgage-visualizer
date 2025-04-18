@@ -1,11 +1,14 @@
 <div [formGroup]="formGroup" class="p-3 bg-neutral-600 mb-3 rounded-md">
-  <button
-    mat-flat-button
-    class="!text-white !bg-neutral-800 mb-5"
-    (click)="onDelete()"
-  >
-    Delete
-  </button>
+  <div class="flex justify-between">
+    <button
+      mat-flat-button
+      class="!text-white !bg-neutral-800 mb-5"
+      (click)="onDelete()"
+    >
+      Delete
+    </button>
+    <mat-slide-toggle formControlName="isActive"></mat-slide-toggle>
+  </div>
   <div>
     <mat-form-field class="w-full mr-1">
       <mat-label>{{ amountType }} Name</mat-label>

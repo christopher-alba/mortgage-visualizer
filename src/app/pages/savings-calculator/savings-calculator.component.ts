@@ -48,14 +48,18 @@ export class SavingsCalculatorComponent implements OnInit {
       },
       tooltip: {
         callbacks: {
-          label: (context) => `$${context.parsed.y.toFixed(2)}`,
+          label: (context) => {
+            const datasetLabel = context.dataset.label || '';
+            const value = context.formattedValue;
+            return `${datasetLabel}: $${value}`;
+          },
         },
       },
       decimation: {
         enabled: true,
         algorithm: 'lttb',
-        threshold: 100,
-        samples: 50, // target number of points visible
+        threshold: 200,
+        samples: 200, // target number of points visible
       },
     },
     scales: {
@@ -89,6 +93,7 @@ export class SavingsCalculatorComponent implements OnInit {
     this.form = this.fb.group({
       savingsGoal: [null, [Validators.required, Validators.min(0)]],
       incomes: this.fb.array([], [Validators.required]),
+      expenses: this.fb.array([], [Validators.required]),
     });
   }
 
@@ -98,22 +103,9 @@ export class SavingsCalculatorComponent implements OnInit {
     if (this.form.invalid) return;
 
     const dataPoints = this.generateWeeklySavingsProjection();
-    const otherData = this.generateIndividualIncomeProjections();
 
     this.lineChartData = {
-      datasets: [
-        {
-          label: 'Total Savings ($)',
-          data: dataPoints,
-          fill: false,
-          borderColor: 'rgb(75, 192, 192)',
-          tension: 0.3,
-          indexAxis: 'x',
-          parsing: false,
-          type: 'line',
-        },
-        ...otherData,
-      ],
+      datasets: dataPoints,
     };
   }
 
@@ -127,6 +119,14 @@ export class SavingsCalculatorComponent implements OnInit {
     return this.incomes.controls as FormGroup[];
   }
 
+  get expenses(): FormArray {
+    return this.form.get('expenses') as FormArray;
+  }
+
+  get expensesFormGroups(): FormGroup[] {
+    return this.expenses.controls as FormGroup[];
+  }
+
   constructor(private fb: FormBuilder) {}
 
   addIncome() {
@@ -138,6 +138,7 @@ export class SavingsCalculatorComponent implements OnInit {
         frequency: ['fortnightly'],
         taxRate: [0],
         applyTax: false,
+        isActive: true,
       })
     );
   }
@@ -152,88 +153,131 @@ export class SavingsCalculatorComponent implements OnInit {
     }
   }
 
-  generateWeeklySavingsProjection(): { x: number; y: number }[] {
-    const incomes = this.incomes.controls.map((control) => {
-      const value = control.value;
-      const taxMultiplier = value.applyTax ? 1 - value.taxRate / 100 : 1;
-      const weeklyMultiplier = this.getWeeklyFrequencyMultiplier(
-        value.frequency
-      );
-      return {
-        amountPerWeek: value.amount * weeklyMultiplier * taxMultiplier,
-      };
-    });
+  addExpense() {
+    this.expenses.push(
+      this.fb.group({
+        id: crypto.randomUUID(),
+        name: [null, [Validators.required, Validators.maxLength(100)]],
+        amount: [null, [Validators.required, Validators.min(0)]],
+        frequency: ['fortnightly'],
+        taxRate: [0],
+        applyTax: false,
+        isActive: true,
+      })
+    );
+  }
+
+  removeExpense(id: string) {
+    const index = this.expenses.controls.findIndex(
+      (control) => control.get('id')?.value === id
+    );
+
+    if (index !== -1) {
+      this.expenses.removeAt(index);
+    }
+  }
+
+  generateWeeklySavingsProjection(): ChartDataset[] {
+    const incomes = this.incomes.controls
+      .filter((control) => control.value.isActive)
+      .map((control, index) => {
+        const value = control.value;
+        const taxMultiplier = value.applyTax ? 1 - value.taxRate / 100 : 1;
+        const weeklyMultiplier = this.getWeeklyFrequencyMultiplier(
+          value.frequency
+        );
+        return {
+          label: value.name || `Income ${index + 1}`,
+          amountPerWeek: value.amount * weeklyMultiplier * taxMultiplier,
+        };
+      });
+
+    const expenses = this.expenses.controls
+      .filter((control) => control.value.isActive)
+      .map((control, index) => {
+        const value = control.value;
+        const taxMultiplier = value.applyTax ? 1 - value.taxRate / 100 : 1;
+        const weeklyMultiplier = this.getWeeklyFrequencyMultiplier(
+          value.frequency
+        );
+        return {
+          label: value.name || `Income ${index + 1}`,
+          amountPerWeek: value.amount * weeklyMultiplier * taxMultiplier * -1,
+        };
+      });
 
     const goal = this.form.get('savingsGoal')?.value || 0;
-    const points: { x: number; y: number }[] = [];
 
-    let totalSavings = 0;
     let currentDate = new Date(); // Start from the current date
 
+    const points: { x: number; y: number }[] = [
+      { x: currentDate.getTime(), y: 0 },
+    ];
+
+    let totalSavings = 0;
+    const datasets: ChartDataset[] = [];
+
+    const incomeData: DataPoint[][] = incomes.map(() => [
+      { x: currentDate.getTime(), y: 0 },
+    ]);
+
+    const expenseData: DataPoint[][] = expenses.map(() => [
+      { x: currentDate.getTime(), y: 0 },
+    ]);
+
     while (totalSavings < goal && points.length < 20000) {
+      currentDate.setDate(currentDate.getDate() + 7); // Increment by 1 week
       const weeklyIncome = incomes.reduce(
         (sum, inc) => sum + inc.amountPerWeek,
         0
       );
-      totalSavings += weeklyIncome;
+
+      const weeklyExpense = expenses.reduce(
+        (sum, inc) => sum + inc.amountPerWeek,
+        0
+      );
+      totalSavings += weeklyIncome + weeklyExpense;
 
       points.push({
         x: currentDate.getTime(),
         y: totalSavings,
       }); // Push the actual date
-      currentDate.setDate(currentDate.getDate() + 7); // Increment by 1 week
-    }
-    console.log(points);
 
-    return points;
-  }
-
-  generateIndividualIncomeProjections(): ChartDataset[] {
-    const incomes = this.incomes.controls.map((control, index) => {
-      const value = control.value;
-      const taxMultiplier = value.applyTax ? 1 - value.taxRate / 100 : 1;
-      const weeklyMultiplier = this.getWeeklyFrequencyMultiplier(
-        value.frequency
-      );
-      return {
-        label: value.name || `Income ${index + 1}`,
-        amountPerWeek: value.amount * weeklyMultiplier * taxMultiplier,
-      };
-    });
-
-    const goal = this.form.get('savingsGoal')?.value || 0;
-    const datasets: ChartDataset[] = [];
-
-    let currentDate = new Date();
-    let totalSavings = 0;
-
-    // Initialize data arrays for each income
-    const incomeData: DataPoint[][] = incomes.map(() => []);
-
-    while (totalSavings < goal && incomeData[0].length < 20000) {
       incomes.forEach((income, i) => {
-        const lastValue =
-          incomeData[i].length > 0
-            ? incomeData[i][incomeData[i].length - 1].y
-            : 0;
+        const lastValue = incomeData[i][incomeData[i].length - 1].y;
         const newValue = lastValue + income.amountPerWeek;
-
         incomeData[i].push({
           x: currentDate.getTime(),
           y: newValue,
         });
       });
 
-      totalSavings = incomeData.reduce(
-        (sum, data) => sum + data[data.length - 1].y,
-        0
-      );
-      currentDate.setDate(currentDate.getDate() + 7);
+      expenses.forEach((expense, i) => {
+        const lastValue = expenseData[i][expenseData[i].length - 1].y;
+        const newValue = lastValue + expense.amountPerWeek;
+
+        expenseData[i].push({
+          x: currentDate.getTime(),
+          y: newValue,
+        });
+      });
     }
 
-    // Build final datasets array
+    // PUSH COMBINED CALCULATION LINE (TOTAL NET INCOME)
+    datasets.push({
+      label: 'Total Savings ($)',
+      data: points,
+      fill: false,
+      borderColor: 'black',
+      tension: 0.3,
+      indexAxis: 'x',
+      parsing: false,
+      type: 'line',
+    });
+
+    // PUSH ALL INCOMES
     incomes.forEach((income, i) => {
-      const color = this.getRandomColor();
+      const color = this.getRandomGreenColor();
       datasets.push({
         label: income.label,
         data: incomeData[i],
@@ -244,14 +288,35 @@ export class SavingsCalculatorComponent implements OnInit {
       });
     });
 
+    // PUSH ALL EXPENSES
+    expenses.forEach((income, i) => {
+      const color = this.getRandomRedColor();
+      datasets.push({
+        label: income.label,
+        data: expenseData[i],
+        borderColor: color[0],
+        fill: true,
+        backgroundColor: color[1],
+        radius: 0,
+      });
+    });
+
     return datasets;
   }
-  private getRandomColor(): [string, string] {
-    const r = Math.floor(Math.random() * 256);
-    const g = Math.floor(Math.random() * 256);
-    const b = Math.floor(Math.random() * 256);
+  private getRandomGreenColor(): [string, string] {
+    const g = Math.floor(Math.random() * 100) + 156; // 100–255 for strong green
+    const r = Math.floor(Math.random() * 60); // 0–39
+    const b = Math.floor(Math.random() * 60); // 0–39
     return [`rgb(${r}, ${g}, ${b})`, `rgb(${r}, ${g}, ${b}, 0.5)`];
   }
+
+  private getRandomRedColor(): [string, string] {
+    const r = Math.floor(Math.random() * 100) + 156; // 100–255 for strong red
+    const g = Math.floor(Math.random() * 60); // 0–39
+    const b = Math.floor(Math.random() * 60); // 0–39
+    return [`rgb(${r}, ${g}, ${b})`, `rgb(${r}, ${g}, ${b}, 0.5)`];
+  }
+
   private getWeeklyFrequencyMultiplier(frequency: string): number {
     switch (frequency.toLowerCase()) {
       case 'weekly':
