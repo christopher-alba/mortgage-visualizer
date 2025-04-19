@@ -139,6 +139,8 @@ export class SavingsCalculatorComponent implements OnInit {
         taxRate: [0],
         applyTax: false,
         isActive: true,
+        interestRate: [0, [Validators.min(0)]],
+        interestRateFrequency: ['yearly'],
       })
     );
   }
@@ -163,6 +165,8 @@ export class SavingsCalculatorComponent implements OnInit {
         taxRate: [0],
         applyTax: false,
         isActive: true,
+        interestRate: [0, [Validators.min(0)]],
+        interestRateFrequency: ['yearly'],
       })
     );
   }
@@ -189,6 +193,10 @@ export class SavingsCalculatorComponent implements OnInit {
         return {
           label: value.name || `Income ${index + 1}`,
           amountPerWeek: value.amount * weeklyMultiplier * taxMultiplier,
+          interestRate:
+            (this.getWeeklyFrequencyMultiplier(value.interestRateFrequency) *
+              value.interestRate) /
+            100,
         };
       });
 
@@ -203,6 +211,10 @@ export class SavingsCalculatorComponent implements OnInit {
         return {
           label: value.name || `Income ${index + 1}`,
           amountPerWeek: value.amount * weeklyMultiplier * taxMultiplier * -1,
+          interestRate:
+            (this.getWeeklyFrequencyMultiplier(value.interestRateFrequency) *
+              value.interestRate) /
+            100,
         };
       });
 
@@ -227,25 +239,15 @@ export class SavingsCalculatorComponent implements OnInit {
 
     while (totalSavings < goal && points.length < 20000) {
       currentDate.setDate(currentDate.getDate() + 7); // Increment by 1 week
-      const weeklyIncome = incomes.reduce(
-        (sum, inc) => sum + inc.amountPerWeek,
-        0
-      );
 
-      const weeklyExpense = expenses.reduce(
-        (sum, inc) => sum + inc.amountPerWeek,
-        0
-      );
-      totalSavings += weeklyIncome + weeklyExpense;
-
-      points.push({
-        x: currentDate.getTime(),
-        y: totalSavings,
-      }); // Push the actual date
+      let weeklyIncome = 0;
+      let weeklyExpense = 0;
 
       incomes.forEach((income, i) => {
         const lastValue = incomeData[i][incomeData[i].length - 1].y;
-        const newValue = lastValue + income.amountPerWeek;
+        const newValue =
+          (lastValue + income.amountPerWeek) * (1 + income.interestRate);
+        weeklyIncome += newValue;
         incomeData[i].push({
           x: currentDate.getTime(),
           y: newValue,
@@ -254,15 +256,22 @@ export class SavingsCalculatorComponent implements OnInit {
 
       expenses.forEach((expense, i) => {
         const lastValue = expenseData[i][expenseData[i].length - 1].y;
-        const newValue = lastValue + expense.amountPerWeek;
-
+        const newValue =
+          (lastValue + expense.amountPerWeek) * (1 + expense.interestRate);
+        weeklyExpense += newValue;
         expenseData[i].push({
           x: currentDate.getTime(),
           y: newValue,
         });
       });
-    }
 
+      totalSavings = weeklyIncome + weeklyExpense;
+      
+      points.push({
+        x: currentDate.getTime(),
+        y: totalSavings,
+      }); // Push the actual date
+    }
     // PUSH COMBINED CALCULATION LINE (TOTAL NET INCOME)
     datasets.push({
       label: 'Total Savings ($)',
@@ -273,6 +282,7 @@ export class SavingsCalculatorComponent implements OnInit {
       indexAxis: 'x',
       parsing: false,
       type: 'line',
+      pointRadius: 6,
     });
 
     // PUSH ALL INCOMES
@@ -284,7 +294,7 @@ export class SavingsCalculatorComponent implements OnInit {
         borderColor: color[0],
         fill: true,
         backgroundColor: color[1],
-        radius: 0,
+        radius: 3,
       });
     });
 
@@ -297,7 +307,7 @@ export class SavingsCalculatorComponent implements OnInit {
         borderColor: color[0],
         fill: true,
         backgroundColor: color[1],
-        radius: 0,
+        radius: 3,
       });
     });
 

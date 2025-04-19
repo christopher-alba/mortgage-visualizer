@@ -1,6 +1,6 @@
 <div class="min-h-screen w-full flex">
   <div
-    class="w-[500px] p-10 h-screen overflow-auto sticky top-0 bg-neutral-900 text-white"
+    class="min-w-[500px] p-10 h-screen overflow-auto sticky top-0 bg-neutral-900 text-white"
   >
     <h1 class="text-2xl mb-0 font-semibold">Mortgage Visualizer</h1>
     <h2 class="mb-3 text-lg">Savings Calculator</h2>
@@ -10,12 +10,14 @@
         <mat-label>Savings Goal</mat-label>
         <input matInput type="number" formControlName="savingsGoal" />
       </mat-form-field>
-      <div
-        class="flex space-x-5 items-center justify-between"
-        (click)="addIncome()"
-      >
+      <div class="flex space-x-5 items-center justify-between">
         <h3>Incomes</h3>
-        <button mat-flat-button extended class="!bg-white !text-blue-500">
+        <button
+          mat-flat-button
+          extended
+          class="!bg-white !text-blue-500"
+          (click)="addIncome()"
+        >
           <mat-icon fontIcon="add"></mat-icon>Add
         </button>
       </div>
@@ -34,12 +36,14 @@
           </div>
         </ng-container>
       </div>
-      <div
-        class="flex space-x-5 items-center justify-between"
-        (click)="addExpense()"
-      >
+      <div class="flex space-x-5 items-center justify-between">
         <h3>Expenses</h3>
-        <button mat-flat-button extended class="!bg-white !text-blue-500">
+        <button
+          mat-flat-button
+          extended
+          class="!bg-white !text-blue-500"
+          (click)="addExpense()"
+        >
           <mat-icon fontIcon="add"></mat-icon>Add
         </button>
       </div>
@@ -63,17 +67,19 @@
       </button>
     </form>
   </div>
-  <div class="flex-grow flex-1 p-10">
-    <h1>
+  <div class="flex-grow flex-1 p-10 flex flex-col">
+    <h1 class="mb-4">
       Please fill in the form on the left to get your visualizations and
       estimations.
     </h1>
-    <canvas
-      baseChart
-      [data]="lineChartData"
-      [options]="lineChartOptions"
-      type="line"
-    >
-    </canvas>
+    <div class="flex-1 relative">
+      <canvas
+        baseChart
+        [data]="lineChartData"
+        [options]="lineChartOptions"
+        type="line"
+        class="absolute inset-0"
+      ></canvas>
+    </div>
   </div>
 </div>
